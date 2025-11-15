@@ -1,4 +1,4 @@
-# <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Logo_ITESO.svg" alt="ITESO" width="70"/>  ValorAcción ITESO - Análisis de Evaluaciones
+# <img src=""C:\\Users\\Francisco\\Downloads\\Becario\\Valoraccion_Repo\\Text-Analysis-Valoraccion\\logo-iteso.png"" alt="ITESO" width="70"/>  ValorAcción ITESO - Análisis de Evaluaciones
 
 ### 🧠 Plataforma de Análisis Automático de Evaluaciones de Asignaturas  
 **Desarrollado para:** Coordinaciones Académicas del ITESO  
