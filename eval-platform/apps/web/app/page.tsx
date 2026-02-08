@@ -91,9 +91,9 @@ export default function DashboardPage() {
           Progreso de desarrollo
         </h2>
         <div className="space-y-3">
-          <ModuleStatus name="Módulo 1 — Fundación" status="active" />
-          <ModuleStatus name="Módulo 2 — Upload & Parsing" status="pending" />
-          <ModuleStatus name="Módulo 3 — Filtros Dinámicos" status="pending" />
+          <ModuleStatus name="Módulo 1 — Fundación" status="done" />
+          <ModuleStatus name="Módulo 2 — Upload & Parsing" status="done" />
+          <ModuleStatus name="Módulo 3 — Filtros Dinámicos" status="active" />
           <ModuleStatus name="Módulo 4 — Motor de Análisis" status="pending" />
           <ModuleStatus name="Módulo 5 — IA (Claude API)" status="pending" />
           <ModuleStatus name="Módulo 6 — Dashboard & Reportes" status="pending" />
