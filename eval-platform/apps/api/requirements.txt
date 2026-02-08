@@ -1,0 +1,22 @@
+# Core
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic-settings==2.7.0
+python-multipart==0.0.19
+
+# Data
+pandas==2.2.3
+openpyxl==3.1.5
+
+# Supabase
+supabase==2.11.0
+
+# NLP (Módulo 4)
+# spacy==3.8.3
+
+# Claude API (Módulo 5)
+# anthropic==0.40.0
+
+# Background jobs (Módulo 6)
+# celery==5.4.0
+# redis==5.2.1
