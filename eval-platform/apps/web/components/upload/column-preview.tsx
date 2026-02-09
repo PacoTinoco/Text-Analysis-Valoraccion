@@ -11,11 +11,20 @@ type ColumnInfo = {
 };
 
 type UploadResult = {
+  file_id: string;
   filename: string;
   size_mb: number;
   rows: number;
   columns: ColumnInfo[];
   filepath: string;
+};
+
+export type AnalysisConfig = {
+  file_id: string;
+  filepath: string;
+  filename: string;
+  responseColumn: string;
+  filters: Record<string, string[]>;
 };
 
 type ColumnPreviewProps = {
@@ -24,31 +33,21 @@ type ColumnPreviewProps = {
   onReset: () => void;
 };
 
-export type AnalysisConfig = {
-  filepath: string;
-  filename: string;
-  responseColumn: string;
-  filters: Record<string, string[]>;
-};
-
 export default function ColumnPreview({
   data,
   onContinue,
   onReset,
 }: ColumnPreviewProps) {
-  // Detectar automáticamente la columna de respuestas (la más larga en texto)
-  const textColumns = data.columns.filter(
-    (c) => c.dtype === "object" && c.unique_count > 100
-  );
+const textColumns = data.columns;
+
   const [responseCol, setResponseCol] = useState(
     textColumns.find((c) => c.name.toLowerCase().includes("respuesta"))?.name ||
       textColumns[0]?.name ||
       ""
   );
 
-  // Columnas de filtro: las que tienen pocos valores únicos
   const filterColumns = data.columns.filter(
-    (c) => c.unique_values && c.unique_count >= 2 && c.unique_count <= 200
+    (c) => c.unique_values && c.unique_count >= 1 && c.unique_count <= 200
   );
 
   const [selectedFilters, setSelectedFilters] = useState<
@@ -63,7 +62,8 @@ export default function ColumnPreview({
         ? current.filter((v) => v !== value)
         : [...current, value];
       if (next.length === 0) {
-        const { [column]: _, ...rest } = prev;
+        const rest = { ...prev };
+        delete rest[column];
         return rest;
       }
       return { ...prev, [column]: next };
@@ -76,7 +76,8 @@ export default function ColumnPreview({
 
   const clearColumn = (column: string) => {
     setSelectedFilters((prev) => {
-      const { [column]: _, ...rest } = prev;
+      const rest = { ...prev };
+      delete rest[column];
       return rest;
     });
   };
@@ -121,7 +122,7 @@ export default function ColumnPreview({
           value={responseCol}
           onChange={(e) => setResponseCol(e.target.value)}
           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">— Seleccionar columna —</option>
           {data.columns
@@ -129,7 +130,7 @@ export default function ColumnPreview({
             .map((col) => (
               <option key={col.name} value={col.name}>
                 {col.name} ({col.unique_count.toLocaleString()} valores únicos
-                {col.null_count > 0 ? `, ${col.null_count} nulos` : ""})
+                {col.null_count > 0 ? ", " + col.null_count + " nulos" : ""})
               </option>
             ))}
         </select>
@@ -140,7 +141,7 @@ export default function ColumnPreview({
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold text-slate-900">Filtros</h3>
           {activeFilterCount > 0 && (
-            <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
               {activeFilterCount} seleccionados
             </span>
           )}
@@ -161,7 +162,6 @@ export default function ColumnPreview({
                 key={col.name}
                 className="border border-slate-200 rounded-lg overflow-hidden"
               >
-                {/* Header */}
                 <button
                   onClick={() =>
                     setExpandedFilter(isExpanded ? null : col.name)
@@ -176,26 +176,24 @@ export default function ColumnPreview({
                       {col.unique_count} opciones
                     </span>
                     {selected.length > 0 && (
-                      <span className="text-xs bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded">
+                      <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                         {selected.length} selec.
                       </span>
                     )}
                   </div>
                   <span
-                    className={`text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                    className={"text-slate-400 transition-transform " + (isExpanded ? "rotate-180" : "")}
                   >
                     ▼
                   </span>
                 </button>
 
-                {/* Values */}
                 {isExpanded && (
                   <div className="px-4 pb-3 border-t border-slate-100">
-                    {/* Quick actions */}
                     <div className="flex gap-2 py-2 mb-1">
                       <button
                         onClick={() => selectAll(col.name, values)}
-                        className="text-xs text-brand-600 hover:text-brand-800"
+                        className="text-xs text-blue-600 hover:text-blue-800"
                       >
                         Seleccionar todos
                       </button>
@@ -208,9 +206,8 @@ export default function ColumnPreview({
                       </button>
                     </div>
 
-                    {/* Checkboxes */}
                     <div
-                      className={`space-y-1 ${values.length > 10 ? "max-h-48 overflow-y-auto" : ""}`}
+                      className={values.length > 10 ? "max-h-48 overflow-y-auto space-y-1" : "space-y-1"}
                     >
                       {values.map((val) => (
                         <label
@@ -221,7 +218,7 @@ export default function ColumnPreview({
                             type="checkbox"
                             checked={selected.includes(val)}
                             onChange={() => toggleFilterValue(col.name, val)}
-                            className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span className="text-sm text-slate-700 truncate">
                             {val}
@@ -245,6 +242,7 @@ export default function ColumnPreview({
         <button
           onClick={() =>
             onContinue({
+              file_id: data.file_id,
               filepath: data.filepath,
               filename: data.filename,
               responseColumn: responseCol,

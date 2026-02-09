@@ -11,6 +11,7 @@ type ColumnInfo = {
 };
 
 type UploadResult = {
+  file_id: string;
   filename: string;
   size_mb: number;
   rows: number;
@@ -32,14 +33,12 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
 
   const handleFile = useCallback(
     async (file: File) => {
-      // Validar extensión
       const ext = file.name.split(".").pop()?.toLowerCase();
       if (ext !== "xlsx" && ext !== "csv") {
         setError("Solo se aceptan archivos .xlsx o .csv");
         return;
       }
 
-      // Validar tamaño (100MB)
       if (file.size > 100 * 1024 * 1024) {
         setError("El archivo excede el límite de 100 MB");
         return;
@@ -70,8 +69,12 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
             if (xhr.status >= 200 && xhr.status < 300) {
               resolve(JSON.parse(xhr.responseText));
             } else {
-              const err = JSON.parse(xhr.responseText);
-              reject(new Error(err.detail || `Error ${xhr.status}`));
+              try {
+                const err = JSON.parse(xhr.responseText);
+                reject(new Error(err.detail || "Error " + xhr.status));
+              } catch {
+                reject(new Error("Error " + xhr.status));
+              }
             }
           });
 
@@ -115,7 +118,6 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
 
   return (
     <div className="space-y-4">
-      {/* Dropzone */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -127,10 +129,9 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
           relative border-2 border-dashed rounded-xl p-12
           flex flex-col items-center justify-center text-center
           transition-all duration-200 cursor-pointer
-          ${
-            dragActive
-              ? "border-brand-500 bg-brand-50"
-              : "border-slate-300 hover:border-brand-400 hover:bg-slate-50"
+          ${dragActive
+            ? "border-blue-500 bg-blue-50"
+            : "border-slate-300 hover:border-blue-400 hover:bg-slate-50"
           }
           ${uploading ? "pointer-events-none opacity-60" : ""}
         `}
@@ -150,7 +151,7 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
 
         {!uploading ? (
           <>
-            <div className="w-16 h-16 rounded-2xl bg-brand-100 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
               <span className="text-3xl">📄</span>
             </div>
             <p className="text-slate-700 font-medium text-lg">
@@ -168,7 +169,7 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
         ) : (
           <div className="w-full max-w-md space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
                 {phase === "parsing" ? (
                   <span className="text-lg animate-spin">⚙️</span>
                 ) : (
@@ -181,22 +182,21 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
                 </p>
                 <p className="text-xs text-slate-500">
                   {phase === "uploading"
-                    ? `Subiendo... ${progress}%`
+                    ? "Subiendo... " + progress + "%"
                     : "Analizando estructura del archivo..."}
                 </p>
               </div>
             </div>
 
-            {/* Progress bar */}
             <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
                   phase === "parsing"
                     ? "bg-amber-500 animate-pulse w-full"
-                    : "bg-brand-500"
+                    : "bg-blue-500"
                 }`}
                 style={
-                  phase === "uploading" ? { width: `${progress}%` } : undefined
+                  phase === "uploading" ? { width: progress + "%" } : undefined
                 }
               />
             </div>
@@ -204,7 +204,6 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
         )}
       </div>
 
-      {/* Error */}
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
           <span className="text-red-500">⚠️</span>

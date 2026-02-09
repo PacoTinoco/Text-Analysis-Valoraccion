@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import health, upload
+from app.routers import health, upload, analyze
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -10,7 +10,6 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json",
 )
 
-# CORS — permite conexión desde el frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -19,9 +18,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(upload.router, prefix="/api/v1", tags=["upload"])
+app.include_router(analyze.router, prefix="/api/v1", tags=["analyze"])
 
 
 @app.on_event("startup")
