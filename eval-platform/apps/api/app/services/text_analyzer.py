@@ -1,9 +1,8 @@
 import re
 from collections import Counter
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
-# Stopwords en español
 STOPWORDS = {
     "de", "la", "que", "el", "en", "y", "a", "los", "del", "se", "las", "por",
     "un", "para", "con", "no", "una", "su", "al", "lo", "como", "más", "pero",
@@ -55,9 +54,10 @@ STOPWORDS = {
     "caer", "cambiar", "presentar", "crear", "abrir", "considerar",
     "oír", "acabar", "convertir", "ganar", "formar", "traer",
     "partir", "morir", "aceptar", "realizar", "suponer", "comprender",
+    "clase", "materia", "profesor", "profesora", "maestro", "maestra",
+    "curso", "semestre", "clases", "materias",
 }
 
-# Palabras positivas y negativas para sentiment básico
 POSITIVE_WORDS = {
     "excelente", "increíble", "extraordinario", "maravilloso", "fantástico",
     "genial", "perfecto", "recomiendo", "encanta", "encantó", "inspirador",
@@ -66,13 +66,15 @@ POSITIVE_WORDS = {
     "satisfecha", "contento", "contenta", "feliz", "útil", "valioso",
     "valiosa", "interesante", "interesantes", "dinámico", "dinámica",
     "claro", "clara", "paciente", "dedicado", "dedicada", "pasión",
-    "pasionado", "profesional", "preparado", "preparada", "dominio",
+    "profesional", "preparado", "preparada", "dominio",
     "conocimiento", "disfruto", "disfruté", "impactante", "enriquecedor",
     "enriquecedora", "recomendable", "destacar", "destaca", "admirable",
     "comprometido", "comprometida", "accesible", "disponible", "amable",
     "respetuoso", "respetuosa", "creativo", "creativa", "innovador",
     "innovadora", "práctico", "práctica", "relevante", "significativo",
-    "significativa", "transformador", "transformadora",
+    "significativa", "transformador", "transformadora", "excelentes",
+    "increíbles", "apasionado", "apasionada", "brillante", "sobresaliente",
+    "excepcional", "magnífico", "magnífica", "estupendo", "estupenda",
 }
 
 NEGATIVE_WORDS = {
@@ -86,11 +88,15 @@ NEGATIVE_WORDS = {
     "negligente", "desinteresado", "desinteresada", "inaccesible",
     "mejorar", "mejore", "falta", "faltó", "carece", "problema",
     "problemas", "queja", "quejas", "molesto", "molesta",
+    "grosero", "grosera", "agresivo", "agresiva", "desconfianza",
+    "incómodo", "incómoda", "tedioso", "tediosa", "repetitivo",
+    "repetitiva", "ineficiente", "desperdicio", "innecesario", "innecesaria",
 }
 
 SUGGESTION_PATTERNS = [
     r"(?:me gustaría|sería bueno|sugiero|sugeriría|recomendaría|debería|podría|ojalá|faltó|falta|necesita|hace falta)",
     r"(?:sería mejor|cambiar|modificar|mejorar|agregar|incluir|más de|menos de)",
+    r"(?:estaría bien|propongo|mi sugerencia|mi recomendación|yo cambiaría|yo mejoraría)",
 ]
 
 
@@ -107,8 +113,8 @@ def tokenize(text: str) -> List[str]:
     return [w for w in words if w not in STOPWORDS and len(w) > 2]
 
 
-def get_bigrams(tokens: List[str]) -> List[str]:
-    return [f"{tokens[i]} {tokens[i+1]}" for i in range(len(tokens) - 1)]
+def get_ngrams(tokens: List[str], n: int) -> List[str]:
+    return [" ".join(tokens[i:i+n]) for i in range(len(tokens) - n + 1)]
 
 
 def classify_sentiment(text: str) -> str:
@@ -131,27 +137,71 @@ def is_suggestion(text: str) -> bool:
     return False
 
 
-def analyze_responses(responses: List[str]) -> Dict[str, Any]:
+def extract_names(text: str, known_names: Optional[set] = None) -> List[str]:
+    found = []
+    if known_names:
+        text_lower = text.lower()
+        for name in known_names:
+            if name.lower() in text_lower:
+                found.append(name)
+    if not found:
+        pattern = r'\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)+)\b'
+        matches = re.findall(pattern, text)
+        skip = {"El Profesor", "La Profesora", "El Maestro", "La Maestra",
+                "Mi Profesor", "Mi Profesora", "Todo Bien", "Muy Bien",
+                "Sin Comentarios", "No Tengo", "Me Parece", "Lo Que"}
+        found = [m for m in matches if m not in skip and len(m) > 5]
+    return found
+
+
+def search_responses(
+    responses: List[str],
+    query: str,
+    limit: int = 50,
+) -> Dict[str, Any]:
+    query_lower = query.lower()
+    matches = []
+    sentiments = {"positivo": 0, "negativo": 0, "neutro": 0}
+    for resp in responses:
+        if query_lower in resp.lower():
+            sentiment = classify_sentiment(resp)
+            sentiments[sentiment] += 1
+            matches.append({"text": resp, "sentiment": sentiment})
+            if len(matches) >= limit:
+                break
+    return {
+        "query": query,
+        "total_matches": len(matches),
+        "sentiment": sentiments,
+        "responses": matches,
+    }
+
+
+def analyze_responses(
+    responses: List[str],
+    known_names: Optional[set] = None,
+) -> Dict[str, Any]:
     if not responses:
         return {"error": "No hay respuestas para analizar"}
 
-    # Filtrar respuestas vacías y muy cortas
     valid = [r for r in responses if isinstance(r, str) and len(r.strip()) >= 10]
     short = [r for r in responses if isinstance(r, str) and 0 < len(r.strip()) < 10]
 
-    # Tokenizar todo
     all_tokens = []
     all_bigrams = []
+    all_trigrams = []
     sentiments = {"positivo": 0, "negativo": 0, "neutro": 0}
     suggestions = []
     lengths = []
     highlights_positive = []
     highlights_negative = []
+    name_counter: Counter = Counter()
 
     for resp in valid:
         tokens = tokenize(resp)
         all_tokens.extend(tokens)
-        all_bigrams.extend(get_bigrams(tokens))
+        all_bigrams.extend(get_ngrams(tokens, 2))
+        all_trigrams.extend(get_ngrams(tokens, 3))
 
         sentiment = classify_sentiment(resp)
         sentiments[sentiment] += 1
@@ -166,17 +216,24 @@ def analyze_responses(responses: List[str]) -> Dict[str, Any]:
         elif sentiment == "negativo" and len(resp) > 80:
             highlights_negative.append(resp)
 
-    # Frecuencias
+        names = extract_names(resp, known_names)
+        for name in names:
+            name_counter[name] += 1
+
     word_freq = Counter(all_tokens).most_common(30)
     bigram_freq = Counter(all_bigrams).most_common(20)
-
-    # Promedios
+    trigram_freq = Counter(all_trigrams).most_common(20)
     avg_length = sum(lengths) / len(lengths) if lengths else 0
 
-    # Seleccionar highlights representativos
     highlights_positive.sort(key=len, reverse=True)
     highlights_negative.sort(key=len, reverse=True)
     suggestions.sort(key=len, reverse=True)
+
+    top_names = [
+        {"name": name, "count": count}
+        for name, count in name_counter.most_common(25)
+        if count >= 2
+    ]
 
     return {
         "summary": {
@@ -188,10 +245,12 @@ def analyze_responses(responses: List[str]) -> Dict[str, Any]:
         "sentiment": sentiments,
         "top_words": [{"word": w, "count": c} for w, c in word_freq],
         "top_phrases": [{"phrase": p, "count": c} for p, c in bigram_freq],
-        "suggestions": suggestions[:15],
+        "top_trigrams": [{"phrase": p, "count": c} for p, c in trigram_freq],
+        "top_names": top_names,
+        "suggestions": suggestions[:20],
         "highlights": {
-            "positive": highlights_positive[:10],
-            "negative": highlights_negative[:10],
+            "positive": highlights_positive[:15],
+            "negative": highlights_negative[:15],
         },
     }
 
@@ -199,8 +258,8 @@ def analyze_responses(responses: List[str]) -> Dict[str, Any]:
 def analyze_by_group(
     responses: List[str],
     groups: List[str],
+    known_names: Optional[set] = None,
 ) -> Dict[str, Dict[str, Any]]:
-    """Analiza respuestas agrupadas por un campo (ej: departamento)."""
     grouped: Dict[str, List[str]] = {}
     for resp, group in zip(responses, groups):
         if group not in grouped:
@@ -209,6 +268,6 @@ def analyze_by_group(
 
     results = {}
     for group_name, group_responses in sorted(grouped.items()):
-        results[group_name] = analyze_responses(group_responses)
+        results[group_name] = analyze_responses(group_responses, known_names)
 
     return results

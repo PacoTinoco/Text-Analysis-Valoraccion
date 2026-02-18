@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { apiUrl } from "@/lib/api";
 
 type ColumnInfo = {
   name: string;
@@ -82,7 +83,7 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
             reject(new Error("Error de conexión con el servidor"))
           );
 
-          xhr.open("POST", "/api/v1/upload");
+          xhr.open("POST", apiUrl("/api/v1/upload"));;
           xhr.send(formData);
         });
 
