@@ -4,12 +4,12 @@ import { usePathname } from "next/navigation";
 import AuthGuard from "@/components/auth/auth-guard";
 import Sidebar from "@/components/layout/sidebar";
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/", "/login"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // Login page: no auth, no sidebar
+  // Public pages: no auth, no sidebar
   if (PUBLIC_PATHS.includes(pathname)) {
     return <>{children}</>;
   }

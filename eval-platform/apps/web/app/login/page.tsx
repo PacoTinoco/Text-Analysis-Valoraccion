@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -40,7 +41,7 @@ export default function LoginPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        window.location.href = "/";
+        window.location.href = "/dashboard";
       }
     } catch (err: any) {
       const msg = err.message === "Invalid login credentials"
@@ -58,9 +59,11 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            Eval<span className="text-blue-400">Platform</span>
-          </h1>
+          <Link href="/" className="inline-block">
+            <h1 className="text-3xl font-bold text-white">
+              Eval<span className="text-blue-400">Platform</span>
+            </h1>
+          </Link>
           <p className="text-blue-200 mt-2 text-sm">Análisis de evaluaciones docentes</p>
         </div>
 
@@ -122,6 +125,12 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-slate-400 mt-6">Solo correos @iteso.mx</p>
+        </div>
+
+        <div className="text-center mt-6">
+          <Link href="/" className="text-sm text-blue-300 hover:text-blue-200 transition-colors">
+            ← Volver al inicio
+          </Link>
         </div>
       </div>
     </div>

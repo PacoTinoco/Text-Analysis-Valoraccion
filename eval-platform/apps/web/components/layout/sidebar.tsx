@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-guard";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: "📊" },
+  { href: "/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/upload", label: "Subir archivo", icon: "📁" },
   { href: "/reports", label: "Reportes", icon: "📋" },
 ];
