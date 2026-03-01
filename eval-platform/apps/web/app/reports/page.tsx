@@ -31,7 +31,16 @@ export default function ReportsPage() {
     setReports(reports.filter((r) => r.id !== id));
   };
 
+  const isNewFormat = (report: SavedReport) => {
+    return Array.isArray(report.results?.questions);
+  };
+
   const exportReport = (report: SavedReport) => {
+    if (isNewFormat(report)) {
+      // New multi-analyze format — export not yet supported
+      alert("La exportación HTML para reportes multi-pregunta estará disponible próximamente. Puedes ver los datos del reporte aquí.");
+      return;
+    }
     downloadHtmlReport({
       general: report.results.general,
       by_group: report.results.by_group,
@@ -65,11 +74,42 @@ export default function ReportsPage() {
       ) : (
         <div className="space-y-3">
           {reports.map((report) => {
-            const general = report.results?.general;
-            const deptCount = report.results?.by_group ? Object.keys(report.results.by_group).length : 0;
-            const total = general?.summary?.valid_responses || 0;
-            const sent = general?.sentiment || {};
-            const posPct = total > 0 ? Math.round(((sent.positivo || 0) / total) * 100) : 0;
+            const isNew = isNewFormat(report);
+            // Extract metrics depending on format
+            let total = 0;
+            let posPct = 0;
+            let deptCount = 0;
+            let sugCount = 0;
+            let quantCount = 0;
+            let qualCount = 0;
+
+            if (isNew) {
+              const questions = report.results?.questions || [];
+              quantCount = questions.filter((q: any) => q.analysis_type === "quantitative").length;
+              qualCount = questions.filter((q: any) => q.analysis_type === "qualitative").length;
+              total = questions.reduce((sum: number, q: any) => sum + (q.total_responses || 0), 0);
+              // For qualitative questions, compute aggregate sentiment
+              const qualQs = questions.filter((q: any) => q.qualitative);
+              if (qualQs.length > 0) {
+                const totalSent = qualQs.reduce((sum: number, q: any) => sum + (q.qualitative?.summary?.valid_responses || 0), 0);
+                const totalPos = qualQs.reduce((sum: number, q: any) => sum + (q.qualitative?.sentiment?.positivo || 0), 0);
+                posPct = totalSent > 0 ? Math.round((totalPos / totalSent) * 100) : 0;
+                sugCount = qualQs.reduce((sum: number, q: any) => sum + (q.qualitative?.suggestions?.length || 0), 0);
+              }
+              // For quantitative, show average mean
+              const quantQs = questions.filter((q: any) => q.quantitative);
+              // Count groups from first question that has by_group
+              const withGroups = questions.find((q: any) => q.by_group && typeof q.by_group === "object");
+              deptCount = withGroups ? Object.keys(withGroups.by_group).length : 0;
+            } else {
+              const general = report.results?.general;
+              deptCount = report.results?.by_group ? Object.keys(report.results.by_group).length : 0;
+              total = general?.summary?.valid_responses || 0;
+              const sent = general?.sentiment || {};
+              posPct = total > 0 ? Math.round(((sent.positivo || 0) / total) * 100) : 0;
+              sugCount = general?.suggestions?.length || 0;
+            }
+
             const isExpanded = expandedId === report.id;
             const date = new Date(report.created_at).toLocaleDateString("es-MX", {
               year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
@@ -92,8 +132,12 @@ export default function ReportsPage() {
                     <div className="text-right hidden md:block">
                       <p className="text-sm font-medium text-slate-900">{total.toLocaleString()} respuestas</p>
                       <p className="text-xs text-slate-500">
-                        <span className="text-emerald-600">{posPct}% pos</span>
-                        {deptCount > 0 && <span> · {deptCount} deptos</span>}
+                        {isNew ? (
+                          <span>{quantCount} cuant. · {qualCount} cual.</span>
+                        ) : (
+                          <span className="text-emerald-600">{posPct}% pos</span>
+                        )}
+                        {deptCount > 0 && <span> · {deptCount} grupos</span>}
                       </p>
                     </div>
                     <span className={"text-slate-400 transition-transform " + (isExpanded ? "rotate-180" : "")}>▼</span>
@@ -104,9 +148,18 @@ export default function ReportsPage() {
                   <div className="border-t border-slate-100 p-5 bg-slate-50">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                       <MiniStat label="Respuestas" value={total.toLocaleString()} />
-                      <MiniStat label="Positivo" value={posPct + "%"} />
-                      <MiniStat label="Sugerencias" value={(general?.suggestions?.length || 0).toString()} />
-                      <MiniStat label="Departamentos" value={deptCount.toString()} />
+                      {isNew ? (
+                        <>
+                          <MiniStat label="Cuantitativas" value={quantCount.toString()} />
+                          <MiniStat label="Cualitativas" value={qualCount.toString()} />
+                        </>
+                      ) : (
+                        <>
+                          <MiniStat label="Positivo" value={posPct + "%"} />
+                          <MiniStat label="Sugerencias" value={sugCount.toString()} />
+                        </>
+                      )}
+                      <MiniStat label="Grupos" value={deptCount.toString()} />
                     </div>
 
                     {report.ai_summary && (
