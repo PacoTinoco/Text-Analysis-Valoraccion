@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import AuthGuard from "@/components/auth/auth-guard";
 import Sidebar from "@/components/layout/sidebar";
+import { AnalysisStoreProvider } from "@/contexts/analysis-store";
 
 const PUBLIC_PATHS = ["/", "/login"];
 
@@ -14,15 +15,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // All other pages: require auth + show sidebar
+  // All other pages: require auth + show sidebar.
+  // AnalysisStoreProvider wraps the whole shell so analyses survive navigation.
   return (
-    <AuthGuard>
-      <div className="flex min-h-screen bg-slate-50">
-        <Sidebar />
-        <main className="flex-1 p-8 overflow-auto">
-          {children}
-        </main>
-      </div>
-    </AuthGuard>
+    <AnalysisStoreProvider>
+      <AuthGuard>
+        <div className="flex min-h-screen bg-slate-50">
+          <Sidebar />
+          <main className="flex-1 p-8 overflow-auto">
+            {children}
+          </main>
+        </div>
+      </AuthGuard>
+    </AnalysisStoreProvider>
   );
 }

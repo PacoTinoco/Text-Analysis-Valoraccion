@@ -1,0 +1,53 @@
+version: "3.9"
+
+# ── Production overrides ───────────────────────────────────────────────────────
+# Use together with docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+#
+# What this file adds / changes vs. the base compose file:
+#   1. Adds Nginx as the single public entry point on port 80
+#   2. Removes direct port exposure for API and web (Nginx handles routing)
+#   3. Adds S3 environment variables to the API
+#   4. Sets memory/CPU limits suitable for a t3.medium EC2 instance
+#   5. Disables Redis external port (it stays internal-only)
+
+services:
+  # ── Nginx reverse proxy (production only) ────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: evalplatform-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+      - api
+    restart: always
+
+  # ── API: add S3 vars, remove direct port, set resource limits ────────────────
+  api:
+    ports: []     # Remove port 8000 from public access; Nginx handles routing
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1500M
+
+  # ── Web: remove direct port, set resource limits ──────────────────────────────
+  web:
+    ports: []     # Remove port 3000 from public access; Nginx handles routing
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  # ── Redis: keep internal-only ─────────────────────────────────────────────────
+  redis:
+    ports: []     # Never expose Redis to the internet

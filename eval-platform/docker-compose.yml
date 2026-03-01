@@ -1,0 +1,91 @@
+version: "3.9"
+
+# ── EvalPlatform – Docker Compose ─────────────────────────────────────────────
+# Starts the Python API, the Next.js frontend, and a Redis cache.
+#
+# Quick start:
+#   1. cp .env.example .env   (fill in your Supabase + Anthropic keys)
+#   2. docker compose up --build
+#
+# URLs:
+#   Frontend  →  http://localhost:3000
+#   API docs  →  http://localhost:8000/api/v1/docs
+#   Redis     →  localhost:6379  (internal only, not exposed to the internet)
+
+services:
+  # ── Redis cache ──────────────────────────────────────────────────────────────
+  # Shared cache for file metadata and analysis results.
+  # All API workers connect here, so data survives worker restarts.
+  redis:
+    image: redis:7-alpine
+    container_name: evalplatform-redis
+    restart: unless-stopped
+    # No port exposed externally — only the API container needs it
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis_data:/data
+
+  # ── Python FastAPI backend ──────────────────────────────────────────────────
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: evalplatform-api
+    ports:
+      - "8000:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-100}
+      - UPLOAD_DIR=/app/uploads
+      # Redis is reachable by service name inside Docker Compose
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      # Persist uploaded files across container restarts
+      - uploads_data:/app/uploads
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
+  # ── Next.js frontend ────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        # API_URL used by Next.js rewrites at BUILD time to proxy /api/v1/*
+        # Inside Docker Compose the API is reachable by its service name.
+        API_URL: http://api:8000
+    container_name: evalplatform-web
+    ports:
+      - "3000:3000"
+    environment:
+      # Also set at runtime so the running container can re-read if needed
+      - API_URL=http://api:8000
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      # Public API URL seen by the browser — points to host machine, not container
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ── Volumes ────────────────────────────────────────────────────────────────────
+volumes:
+  uploads_data:
+    driver: local
+  redis_data:
+    driver: local

@@ -1,0 +1,29 @@
+# Next.js build output
+.next/
+out/
+
+# Dependencies (installed fresh in Docker)
+node_modules/
+
+# Environment files (injected via docker-compose)
+.env
+.env.*
+!.env.example
+
+# Development
+*.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Test / lint output
+coverage/
+.eslintcache

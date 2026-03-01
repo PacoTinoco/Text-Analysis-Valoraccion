@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import FileDropzone from "@/components/upload/file-dropzone";
 import ColumnMapping, { type MultiAnalysisConfig } from "@/components/upload/column-mapping";
 import ExpandableResponse from "@/components/ui/expandable-response";
 import QuantitativeSection, { type QuantitativeResult } from "@/components/results/quantitative-section";
-import { downloadHtmlReport } from "@/lib/export-report";
+import { downloadHtmlReport, downloadMultiHtmlReport } from "@/lib/export-report";
 import { saveReport } from "@/lib/save-report";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/components/auth/auth-guard";
+import { useAnalysisStore } from "@/contexts/analysis-store";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -71,6 +73,21 @@ export default function UploadPage() {
   const [analysisResult, setAnalysisResult] = useState<MultiAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const searchParams = useSearchParams();
+  const { addAnalysis, getAnalysis } = useAnalysisStore();
+
+  // Restore a previously completed analysis when ?restore=<id> is in the URL
+  useEffect(() => {
+    const restoreId = searchParams.get("restore");
+    if (!restoreId) return;
+    const stored = getAnalysis(restoreId);
+    if (stored) {
+      setAnalysisResult(stored.result as MultiAnalysisResult);
+      setAnalysisConfig(stored.config as MultiAnalysisConfig);
+      setStep("results");
+    }
+  }, [searchParams, getAnalysis]);
+
   const handleUploadComplete = (result: UploadResult) => { setUploadResult(result); setStep("preview"); };
 
   const handleContinue = async (config: MultiAnalysisConfig) => {
@@ -91,8 +108,19 @@ export default function UploadPage() {
         }),
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.detail || "Error"); }
-      setAnalysisResult(await res.json());
+      const data: MultiAnalysisResult = await res.json();
+      setAnalysisResult(data);
       setStep("results");
+      // Persist analysis in the sidebar store so the user can revisit it later
+      const qCount = data.questions.length;
+      const label = config.filename + " — " + qCount + " pregunta" + (qCount !== 1 ? "s" : "");
+      addAnalysis({
+        id: config.file_id,        // use file_id so duplicates are deduplicated
+        title: label,
+        timestamp: Date.now(),
+        result: data,
+        config,
+      });
     } catch (err) { setError(err instanceof Error ? err.message : "Error"); setStep("preview"); }
   };
 
@@ -412,6 +440,11 @@ function MultiResultsDashboard({ data, config, onReset }: { data: MultiAnalysisR
 
       {/* Action buttons */}
       <div className="flex justify-end gap-3 pt-4">
+        <button
+          onClick={() => downloadMultiHtmlReport({ questions: data.questions, config: data.config, aiSummary: aiSummaryText || undefined })}
+          className="btn-secondary text-sm flex items-center gap-1">
+          📥 Exportar HTML
+        </button>
         <button onClick={handleSave} disabled={saving || saved} className={"flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors " + (saved ? "bg-emerald-100 text-emerald-700" : "btn-secondary")}>{saved ? "✅ Guardado" : saving ? "Guardando..." : "💾 Guardar reporte"}</button>
         <button onClick={onReset} className="btn-secondary">Nuevo análisis</button>
       </div>

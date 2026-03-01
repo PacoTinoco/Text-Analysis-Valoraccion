@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase, type SavedReport } from "@/lib/supabase";
 import { useAuth } from "@/components/auth/auth-guard";
-import { downloadHtmlReport } from "@/lib/export-report";
+import { downloadHtmlReport, downloadMultiHtmlReport } from "@/lib/export-report";
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -37,8 +37,11 @@ export default function ReportsPage() {
 
   const exportReport = (report: SavedReport) => {
     if (isNewFormat(report)) {
-      // New multi-analyze format — export not yet supported
-      alert("La exportación HTML para reportes multi-pregunta estará disponible próximamente. Puedes ver los datos del reporte aquí.");
+      downloadMultiHtmlReport({
+        questions: report.results.questions,
+        config: report.results.config ?? report.config,
+        aiSummary: report.ai_summary || undefined,
+      });
       return;
     }
     downloadHtmlReport({
