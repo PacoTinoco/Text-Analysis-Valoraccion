@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { supabase, type SavedReport } from "@/lib/supabase";
 import { useAuth } from "@/components/auth/auth-guard";
 import { downloadHtmlReport, downloadMultiHtmlReport } from "@/lib/export-report";
@@ -63,6 +64,17 @@ export default function ReportsPage() {
 
   return (
     <div>
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 transition-colors mb-4 group"
+      >
+        <span className="w-7 h-7 rounded-lg border border-slate-200 bg-white/80 flex items-center justify-center group-hover:border-blue-300 group-hover:bg-blue-50 transition-all">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+        </span>
+        Menú principal
+      </Link>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Reportes</h1>
         <p className="text-slate-500 mt-1">Historial de análisis guardados.</p>

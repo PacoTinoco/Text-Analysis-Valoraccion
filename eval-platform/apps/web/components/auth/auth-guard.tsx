@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase, type Profile } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -26,6 +27,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -34,7 +36,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         loadProfile(session.user.id);
       } else {
         setLoading(false);
-        window.location.href = "/login";
+        router.push("/login");
       }
     });
 
@@ -45,12 +47,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
         setProfile(null);
-        window.location.href = "/login";
+        router.push("/login");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadProfile = async (userId: string) => {
     const { data } = await supabase
@@ -64,7 +66,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/";
+    router.push("/");
   };
 
   if (loading) {

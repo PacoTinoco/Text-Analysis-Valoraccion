@@ -82,19 +82,6 @@ export default function ColumnMapping({
     Record<string, "quantitative" | "qualitative">
   >({});
 
-  // Filtros (reutilizar lógica existente)
-  const filterColumns = data.columns.filter(
-    (c) =>
-      c.unique_values &&
-      c.unique_count >= 1 &&
-      c.unique_count <= 200 &&
-      c.name !== preguntaCol &&
-      c.name !== respuestaCol
-  );
-  const [selectedFilters, setSelectedFilters] = useState<
-    Record<string, string[]>
-  >({});
-  const [expandedFilter, setExpandedFilter] = useState<string | null>(null);
 
   const toggleQuestion = (qNum: string) => {
     setSelectedQuestions((prev) => {
@@ -125,37 +112,6 @@ export default function ColumnMapping({
 
   const clearAllQuestions = () => setSelectedQuestions({});
 
-  const toggleFilterValue = (column: string, value: string) => {
-    setSelectedFilters((prev) => {
-      const current = prev[column] || [];
-      const next = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value];
-      if (next.length === 0) {
-        const rest = { ...prev };
-        delete rest[column];
-        return rest;
-      }
-      return { ...prev, [column]: next };
-    });
-  };
-
-  const selectAllFilter = (column: string, values: string[]) => {
-    setSelectedFilters((prev) => ({ ...prev, [column]: [...values] }));
-  };
-
-  const clearFilter = (column: string) => {
-    setSelectedFilters((prev) => {
-      const rest = { ...prev };
-      delete rest[column];
-      return rest;
-    });
-  };
-
-  const activeFilterCount = Object.values(selectedFilters).reduce(
-    (sum, arr) => sum + arr.length,
-    0
-  );
 
   const selectedCount = Object.keys(selectedQuestions).length;
   const canContinue =
@@ -175,7 +131,7 @@ export default function ColumnMapping({
       pregunta_column: preguntaCol,
       respuesta_column: respuestaCol,
       questions,
-      filters: selectedFilters,
+      filters: {},
       group_by: groupByCol || null,
     });
   };
@@ -382,113 +338,6 @@ export default function ColumnMapping({
                       >
                         Cualitativa (texto)
                       </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Filters */}
-      {filterColumns.length > 0 && (
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="font-semibold text-slate-900">Filtros</h3>
-            {activeFilterCount > 0 && (
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                {activeFilterCount} seleccionados
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-slate-500 mb-4">
-            Filtra los datos antes de analizar. Si no seleccionas nada, se
-            analizan todos.
-          </p>
-
-          <div className="space-y-2">
-            {filterColumns.map((col) => {
-              const isExpanded = expandedFilter === col.name;
-              const selected = selectedFilters[col.name] || [];
-              const values = col.unique_values || [];
-
-              return (
-                <div
-                  key={col.name}
-                  className="border border-slate-200 rounded-lg overflow-hidden"
-                >
-                  <button
-                    onClick={() =>
-                      setExpandedFilter(isExpanded ? null : col.name)
-                    }
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-slate-700">
-                        {col.name}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {col.unique_count} opciones
-                      </span>
-                      {selected.length > 0 && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                          {selected.length} selec.
-                        </span>
-                      )}
-                    </div>
-                    <span
-                      className={
-                        "text-slate-400 transition-transform " +
-                        (isExpanded ? "rotate-180" : "")
-                      }
-                    >
-                      ▼
-                    </span>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="px-4 pb-3 border-t border-slate-100">
-                      <div className="flex gap-2 py-2 mb-1">
-                        <button
-                          onClick={() => selectAllFilter(col.name, values)}
-                          className="text-xs text-blue-600 hover:text-blue-800"
-                        >
-                          Seleccionar todos
-                        </button>
-                        <span className="text-slate-300">|</span>
-                        <button
-                          onClick={() => clearFilter(col.name)}
-                          className="text-xs text-slate-500 hover:text-slate-700"
-                        >
-                          Limpiar
-                        </button>
-                      </div>
-
-                      <div
-                        className={
-                          values.length > 10
-                            ? "max-h-48 overflow-y-auto space-y-1"
-                            : "space-y-1"
-                        }
-                      >
-                        {values.map((val) => (
-                          <label
-                            key={val}
-                            className="flex items-center gap-2 py-1 cursor-pointer hover:bg-slate-50 px-1 rounded"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selected.includes(val)}
-                              onChange={() => toggleFilterValue(col.name, val)}
-                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-slate-700 truncate">
-                              {val}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
                     </div>
                   )}
                 </div>

@@ -127,12 +127,13 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
         onDragLeave={() => setDragActive(false)}
         onDrop={handleDrop}
         className={`
-          relative border-2 border-dashed rounded-xl p-12
+          relative border-2 border-dashed rounded-2xl p-12
           flex flex-col items-center justify-center text-center
-          transition-all duration-200 cursor-pointer
+          transition-all duration-300 cursor-pointer
+          bg-white/60 backdrop-blur-sm
           ${dragActive
-            ? "border-blue-500 bg-blue-50"
-            : "border-slate-300 hover:border-blue-400 hover:bg-slate-50"
+            ? "border-blue-500 bg-blue-50/80 shadow-lg shadow-blue-500/10 scale-[1.01]"
+            : "border-slate-300 hover:border-blue-400 hover:bg-white/80 hover:shadow-md hover:shadow-blue-500/5"
           }
           ${uploading ? "pointer-events-none opacity-60" : ""}
         `}
@@ -152,20 +153,24 @@ export default function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
 
         {!uploading ? (
           <>
-            <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
-              <span className="text-3xl">📄</span>
+            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mb-4 shadow-sm ${dragActive ? "animate-bounce" : ""}`}>
+              <svg className="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
             </div>
-            <p className="text-slate-700 font-medium text-lg">
+            <p className="text-slate-800 font-semibold text-lg">
               {dragActive
                 ? "Suelta tu archivo aquí"
                 : "Arrastra y suelta tu archivo aquí"}
             </p>
-            <p className="text-slate-400 text-sm mt-1">
-              o haz clic para seleccionar
+            <p className="text-slate-400 text-sm mt-1.5">
+              o <span className="text-blue-500 font-medium">haz clic para seleccionar</span>
             </p>
-            <p className="text-slate-400 text-xs mt-3">
-              Formatos: .xlsx, .csv — Máximo 100 MB
-            </p>
+            <div className="flex items-center gap-3 mt-4">
+              <span className="text-xs bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">.xlsx</span>
+              <span className="text-xs bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">.csv</span>
+              <span className="text-xs text-slate-400">Máx. 100 MB</span>
+            </div>
           </>
         ) : (
           <div className="w-full max-w-md space-y-3">

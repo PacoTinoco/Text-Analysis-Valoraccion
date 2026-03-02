@@ -39,3 +39,97 @@ body {
     @apply bg-white rounded-xl border border-slate-200 shadow-sm;
   }
 }
+
+/* ── Animated Background (light version of landing page dark grid) ────────── */
+
+.animated-bg-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(165deg, #e8eeff 0%, #eef2ff 30%, #f4f6ff 60%, #edf0ff 100%);
+}
+
+/* Blue glow blob — top right, drifts slowly */
+.animated-bg-layer .glow-blue {
+  position: absolute;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.18) 0%, transparent 70%);
+  top: -200px;
+  right: -100px;
+  filter: blur(60px);
+  animation: driftBlue 18s ease-in-out infinite alternate;
+}
+
+/* Purple glow blob — bottom left, drifts slowly */
+.animated-bg-layer .glow-purple {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.12) 0%, transparent 70%);
+  bottom: -150px;
+  left: -80px;
+  filter: blur(60px);
+  animation: driftPurple 22s ease-in-out infinite alternate;
+}
+
+/* Teal accent glow — center, slower drift */
+.animated-bg-layer .glow-teal {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.08) 0%, transparent 70%);
+  top: 40%;
+  left: 30%;
+  filter: blur(60px);
+  animation: driftTeal 25s ease-in-out infinite alternate;
+}
+
+@keyframes driftBlue {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-50px, 40px) scale(1.05); }
+}
+
+@keyframes driftPurple {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -30px) scale(1.08); }
+}
+
+@keyframes driftTeal {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-30px, -20px) scale(0.95); }
+}
+
+/* Grid pattern — clearly visible blue grid lines */
+.grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.12) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, black 40%, transparent 100%);
+  animation: gridShift 40s linear infinite;
+}
+
+@keyframes gridShift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+
+/* Dot overlay for extra depth */
+.dot-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(59, 130, 246, 0.15) 1.2px, transparent 1.2px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 25%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 25%, transparent 100%);
+  animation: gridShift 50s linear infinite reverse;
+}

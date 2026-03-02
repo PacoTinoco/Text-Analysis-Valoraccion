@@ -20,10 +20,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AnalysisStoreProvider>
       <AuthGuard>
-        <div className="flex min-h-screen bg-slate-50">
+        <div className="flex min-h-screen">
           <Sidebar />
-          <main className="flex-1 p-8 overflow-auto">
-            {children}
+          <main className="flex-1 overflow-auto relative">
+            {/* Animated background — light version of landing page grid */}
+            <div className="animated-bg-layer" aria-hidden="true">
+              <div className="grid-pattern" />
+              <div className="dot-pattern" />
+              <div className="glow-blue" />
+              <div className="glow-purple" />
+              <div className="glow-teal" />
+            </div>
+            {/* Page content */}
+            <div className="relative z-10 p-8">
+              {children}
+            </div>
           </main>
         </div>
       </AuthGuard>

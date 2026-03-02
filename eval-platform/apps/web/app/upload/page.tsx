@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import FileDropzone from "@/components/upload/file-dropzone";
 import ColumnMapping, { type MultiAnalysisConfig } from "@/components/upload/column-mapping";
@@ -66,7 +67,20 @@ const COLORS = ["#10b981", "#94a3b8", "#ef4444"];
 
 /* ── Main Page ── */
 
+// Suspense wrapper is required because UploadPageContent uses useSearchParams
 export default function UploadPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-24">
+        <div className="text-slate-400 text-sm">Cargando...</div>
+      </div>
+    }>
+      <UploadPageContent />
+    </Suspense>
+  );
+}
+
+function UploadPageContent() {
   const [step, setStep] = useState<"upload" | "preview" | "analyzing" | "results">("upload");
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [analysisConfig, setAnalysisConfig] = useState<MultiAnalysisConfig | null>(null);
@@ -128,6 +142,18 @@ export default function UploadPage() {
 
   return (
     <div>
+      {/* Back to dashboard */}
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 transition-colors mb-4 group"
+      >
+        <span className="w-7 h-7 rounded-lg border border-slate-200 bg-white/80 flex items-center justify-center group-hover:border-blue-300 group-hover:bg-blue-50 transition-all">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+        </span>
+        Menú principal
+      </Link>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">{step === "results" ? "Resultados del análisis" : "Subir archivo"}</h1>
         <p className="text-slate-500 mt-1">{step === "results" ? analysisResult?.config.file : "Sube un archivo XLSX o CSV para comenzar el análisis."}</p>
@@ -582,15 +608,25 @@ function fmtInline(text: string): string { return text.replace(/\*\*(.+?)\*\*/g,
 function DrilldownModal({ query, fileId, responseColumn, filters, department, onClose }: { query: string; fileId: string; responseColumn: string; filters: Record<string, string[]>; department?: string; onClose: () => void; }) {
   const [data, setData] = useState<DrilldownResult | null>(null);
   const [loading, setLoading] = useState(true);
-  useState(() => {
-    fetch(apiUrl("/api/v1/drilldown"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file_id: fileId, response_column: responseColumn, query, filters, department, limit: 50 }) }).then((r) => r.json()).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
-  });
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  useEffect(() => {
+    setLoading(true);
+    setFetchError(null);
+    fetch(apiUrl("/api/v1/drilldown"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file_id: fileId, response_column: responseColumn, query, filters, department, limit: 50 }),
+    })
+      .then((r) => { if (!r.ok) throw new Error("Error " + r.status); return r.json(); })
+      .then((d) => { setData(d); setLoading(false); })
+      .catch((e) => { setFetchError(e.message || "Error al cargar"); setLoading(false); });
+  }, [query, fileId, responseColumn, department]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 px-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[75vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-5 border-b border-slate-200 flex items-center justify-between flex-shrink-0"><div><h2 className="font-semibold text-slate-900">Respuestas: &quot;{query}&quot;</h2>{data && <p className="text-sm text-slate-500 mt-0.5">{data.total_matches} encontradas{department ? " en " + department : ""}</p>}</div><button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button></div>
         {data && !loading && (<div className="px-5 py-3 border-b border-slate-100 flex gap-4 flex-shrink-0"><MiniSent label="Positivo" count={data.sentiment.positivo} total={data.total_matches} color="text-emerald-600" /><MiniSent label="Neutro" count={data.sentiment.neutro} total={data.total_matches} color="text-slate-500" /><MiniSent label="Negativo" count={data.sentiment.negativo} total={data.total_matches} color="text-red-600" /></div>)}
-        <div className="flex-1 overflow-y-auto p-5 space-y-2">{loading && <p className="text-center text-slate-400 py-8">Buscando...</p>}{data?.responses.map((r, i) => <ExpandableResponse key={i} text={r.text} variant={r.sentiment === "positivo" ? "positive" : r.sentiment === "negativo" ? "negative" : "neutral"} previewLength={400} />)}{data && data.responses.length === 0 && <p className="text-center text-slate-400 py-8">No se encontraron</p>}</div>
+        <div className="flex-1 overflow-y-auto p-5 space-y-2">{loading && <p className="text-center text-slate-400 py-8">Buscando...</p>}{fetchError && <p className="text-center text-red-500 py-8">⚠️ {fetchError}</p>}{data?.responses.map((r, i) => <ExpandableResponse key={i} text={r.text} variant={r.sentiment === "positivo" ? "positive" : r.sentiment === "negativo" ? "negative" : "neutral"} previewLength={400} />)}{data && data.responses.length === 0 && <p className="text-center text-slate-400 py-8">No se encontraron respuestas</p>}</div>
       </div>
     </div>
   );
