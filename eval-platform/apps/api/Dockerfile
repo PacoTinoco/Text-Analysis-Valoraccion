@@ -27,5 +27,5 @@ USER appuser
 
 EXPOSE 8000
 
-# Production: no --reload flag, bind to all interfaces
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# 1 worker = in-memory cache is shared for all requests (no Redis needed on free tier)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
