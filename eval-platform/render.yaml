@@ -1,0 +1,18 @@
+# render.yaml — Render Blueprint for EvalPlatform API
+# Deploy: https://render.com/deploy → connect your repo → auto-detects this file
+services:
+  - type: web
+    name: evalplatform-api
+    runtime: docker
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: apps/api
+    plan: free
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
