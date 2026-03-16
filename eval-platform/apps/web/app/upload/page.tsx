@@ -121,7 +121,12 @@ function UploadPageContent() {
           group_by: config.group_by,
         }),
       });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.detail || "Error"); }
+      if (!res.ok) {
+        let msg = "Error al analizar";
+        try { const err = await res.json(); msg = err.detail || msg; } catch {}
+        if (res.status === 404) msg = "Archivo no encontrado en el servidor. Es posible que la sesión haya expirado. Por favor, vuelve a subir el archivo.";
+        throw new Error(msg);
+      }
       const data: MultiAnalysisResult = await res.json();
       setAnalysisResult(data);
       setStep("results");

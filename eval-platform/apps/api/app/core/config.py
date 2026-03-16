@@ -27,10 +27,10 @@ class Settings(BaseSettings):
     # Cache
     # Redis URL — leave empty to use the in-memory fallback (fine for local dev)
     REDIS_URL: str = ""
-    # How long uploaded file metadata stays in cache (2 hours)
-    CACHE_TTL_FILES: int = 7200
-    # How long analysis results stay in cache (1 hour)
-    CACHE_TTL_ANALYSIS: int = 3600
+    # How long uploaded file metadata stays in cache (24 hours)
+    CACHE_TTL_FILES: int = 86400
+    # How long analysis results stay in cache (12 hours)
+    CACHE_TTL_ANALYSIS: int = 43200
 
     # AWS / S3 file storage
     # Leave all empty to use local disk (default for dev and single-server deploy)
