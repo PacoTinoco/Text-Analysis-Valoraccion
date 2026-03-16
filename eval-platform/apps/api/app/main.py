@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.routers import health, upload, analyze
+## MAIN.PY
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -9,7 +10,6 @@ app = FastAPI(
     docs_url="/api/v1/docs",
     openapi_url="/api/v1/openapi.json",
 )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
